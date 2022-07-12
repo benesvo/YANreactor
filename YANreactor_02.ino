@@ -33,7 +33,7 @@ float error = 0;
 long output = 0;
 long max_output = 10000;
 float dead_band = 0.05;
-//long pump_coef = 100;   //koeficient pro prepocet output >> Vfeed
+float pump_coef = 0.00020354;   //koeficient pro prepocet output >> Vfeed
 unsigned long total_feed = 0;
 
 unsigned long test_cas = 10;   //cas v ms pro testovani
@@ -78,6 +78,8 @@ void setup()
  Serial.println(" ..... OK");
 
  //davkovani feedu
+ digitalWrite(7, HIGH);   //set direction of pump rotation
+ digitalWrite(8, LOW);    //set direction of pump rotation
  pinMode(PWMpin, OUTPUT);
  analogWrite(PWMpin, 0);
 
@@ -133,12 +135,12 @@ void loop()
   if(error > dead_band && test_cas > 7200000){   //deadband + odriznout prvni 2 h  
     output = Kp * error;
     if(output > max_output) output = max_output;    //omezeni max output
-    total_feed += output; // pump_coef;   // prepocte output na mnozstvi feedu a pricte k sume feedu
     
-    //spusti cerpadlo a pocka vypocteny cas
+    //spusti cerpadlo a pocka vypocteny cas + pripocte nacerpane mnozstvi k total_feed
     analogWrite(PWMpin, 127);   //motor cerpadla je zde napevno na polovicni vykon
     delay(output);
     analogWrite(PWMpin, 0);
+    total_feed += output * pump_coef;   // prepocte output [ms] na mnozstvi feedu a pricte k sume feedu [g]
   }
   else output = 0;
 
@@ -148,7 +150,7 @@ void loop()
   cas_predch = test_cas;
 
 
- // výpis měření a davkovani feedu
+ // vypis mereni, davkovani feedu atd. na SD
  logfile = SD.open(filename, FILE_WRITE);
  logfile.print(test_cas/1000); logfile.print(";"); 
  logfile.print(hmotnost_akt, 5); logfile.print(";");
@@ -162,7 +164,9 @@ void loop()
 
 
  //delay 10 minut
- delay(600000);
+ //delay(600000);
+ test_cas += 600000;
+ delay(100);
 }
 
 
